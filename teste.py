@@ -1,30 +1,11 @@
 # %%
-import sys
 import pandas as pd
 from plot import plot
 from statsmodels.tsa.arima.model import ARIMA
-from pandas import DataFrame
-from matplotlib import pyplot
-from matplotlib.pyplot import figure
-import matplotlib.pyplot as plt
-import math
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
 import numpy as np
-import random
-from statsmodels.graphics.tsaplots import plot_acf
-from statsmodels.graphics.tsaplots import plot_pacf
-from sklearn.model_selection import train_test_split
-import statsmodels.api as sm
 import warnings
 from warnings import simplefilter
 from statsmodels.tools.sm_exceptions import ConvergenceWarning, HessianInversionWarning, ValueWarning
-from detecta import detect_cusum
-import datetime
-import pytz
-import sklearn.metrics as skm
-import copy
-import seaborn as sns
 import os
 import time
 from multiprocessing import Pool
@@ -42,7 +23,7 @@ max_std = 15
 std = min_std
 
 # %%
-stations = [23025122]
+stations = [26475197]
 features = [
 	'umidrelmed2m',
 	'umidrelmed1m',
@@ -127,10 +108,10 @@ def clear_warns():
 	simplefilter("ignore", category=ValueWarning)
 	simplefilter("ignore", category=UserWarning)
 
-def mp_arima_numba(data: np.array):
+def mp_arima_numba(data: np.array) -> (list, AutoARIMA):
 	if len(data) == 0:
 		return None
-	model = AutoARIMA(period=window_size, parallel=True, num_cores=6)
+	model = AutoARIMA(period=window_size, max_p=2, max_q=2, max_d=2, stepwise=False, parallel=True, approximation=True)
 	model.fit(data)
 	return list(model.model_.model['arma'])[:3], model
  
@@ -192,31 +173,36 @@ if __name__ == '__main__':
 	# %%
 	for feature in features[:1]:
 		for station in stations:
-			df = pd.read_csv(f'../Dados/features/station_{station}/export_automaticas_{station}_{feature}.csv', sep=';')
+			df = pd.read_csv(f'../../Dados/por estacao/{station}/export_automaticas_{station}_{feature}.csv')
 
-			data = np.array(df[feature].to_list())
+			# df = df.loc[df['date'].apply(lambda d: d.split('-')[0] == '2016')]
+			 
+			data = np.array(df[feature].to_list()[:4000])
 
+			# Tirando NaN e inf e etc...
+			# Substitui pelo último valor
 			data = np.array([data[i] if np.isfinite(data[i]) else data[i-1] for i in range(len(data))])
 
 			# Dados separado em janelas
 			reshaped_data, targets = seq_data(data, window_size=window_size)
-			processes = 6
-			chunksize, extra = divmod(len(data), processes * 4)
-			if extra:
-				chunksize += 1
+			# processes = 8
+			# chunksize, extra = divmod(len(data), processes * 4)
+			# if extra:
+			# 	chunksize += 1
 	
 			standart_d = [max(min(np.std(x) * s, max_std), min_std) for x in reshaped_data]
 	
-			t = time.perf_counter()
 			print('Achando Hiper-parâmetros')
+			t = time.perf_counter()
 			params, model = mp_arima_numba(data)
 			print(f'fim: {time.perf_counter() - t}')
+			print(f'Parâmetros: {params}')
 			print('Prevendo série')
 			t = time.perf_counter()
 			predicted_series = model.predict_in_sample(1)['mean'].to_list()[window_size:]
 			print(f'fim: {time.perf_counter() - t}')
-			print(f'Parâmetros: {params}')
-			anom_positions = [i for (i, prediction), std in zip(enumerate(predicted_series[window_size:]), standart_d) if abs(prediction - targets[i]) > std]
+			print('Achando anomalias')
+			anom_positions = [i for (i, prediction), std in zip(enumerate(predicted_series), standart_d) if abs(prediction - targets[i]) > std]
 
 			series = data[window_size:]
 
@@ -240,9 +226,9 @@ if __name__ == '__main__':
 				continuous_anomalies=continuous,
 				sec_plots=[predicted_series],
 				std_dev=standart_d,
-				save=True,
-				img_name=f'./results/images/{feature}/{station}_{feature}_({params[0]}, {params[1]}, {params[2]}).jpg',
-				show=False
+				# save=True,
+				# img_name=f'./results/images/{feature}/{station}_{feature}_({params[0]}, {params[1]}, {params[2]}).jpg',
+				# show=False
 			)
 		
 			result = pd.DataFrame({
