@@ -242,39 +242,3 @@ if __name__ == '__main__':
 				sep=';',
 				index=False
     	)
-	
-			# print('Método antigo')
-			# t = time.perf_counter()
-			# with Pool() as pool:
-			# 	predicted_series = list(pool.imap_unordered(async_arima, enumerate(reshaped_data), chunksize))
-			# 	predicted_series.sort(key=lambda ix: ix[0])
-			# 	predicted_series = [ix[1] for ix in predicted_series]
-
-			# print('fim', time.perf_counter() - t)
-			# anom_positions = [i for (i, prediction), std in zip(enumerate(predicted_series), standart_d) if abs(prediction - targets[i]) > std]
-	
-			# series = data[window_size:]
-	
-			# isolated, continuous = sep_anomalies(anom_positions)
-	
-			# try:
-			# 	path = os.path.join('./results/data/{}'.format(feature))
-			# 	os.makedirs(path)
-			# except Exception as e:
-			# 	pass
-			
-			# try:
-			# 	path = os.path.join('./results/images/{}'.format(feature))
-			# 	os.makedirs(path)
-			# except Exception as e:
-			# 	pass
-	
-			# plot(series, detected_anomalies=isolated, continuous_anomalies=continuous, sec_plots=[predicted_series], std_dev=standart_d, save=True, img_name='./results/images/{}/{}_{}_old.jpg'.format(feature, station, feature), show=False)
-		
-			# result = pd.DataFrame({
-			# 	'real_value': [data[i + window_size] for i in range(len(predicted_series))],
-			# 	'predictions': predicted_series,
-			# 	'anomaly': [1 if i in anom_positions else 0 for i in range(len(predicted_series))],
-			# 	'std': standart_d,
-			# })
-			# result.to_csv('./results/data/{}/{}_{}_old.csv'.format(feature, station, feature), sep=';',index=False)
